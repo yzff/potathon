@@ -208,6 +208,7 @@ class TelegramBaseClient(abc.ABC):
             api_hash: str,
             *,
             connection: 'typing.Type[Connection]' = ConnectionTcpFull,
+            ipv4: str = DEFAULT_IPV4_IP,
             use_ipv6: bool = False,
             proxy: typing.Union[tuple, dict] = None,
             timeout: int = 10,
@@ -271,7 +272,7 @@ class TelegramBaseClient(abc.ABC):
                 (':' in session.server_address) != use_ipv6):
             session.set_dc(
                 DEFAULT_DC_ID,
-                DEFAULT_IPV6_IP if self._use_ipv6 else DEFAULT_IPV4_IP,
+                DEFAULT_IPV6_IP if self._use_ipv6 else ipv4,
                 DEFAULT_PORT
             )
 
@@ -289,6 +290,8 @@ class TelegramBaseClient(abc.ABC):
         self._entity_cache = EntityCache()
         self.api_id = int(api_id)
         self.api_hash = api_hash
+
+        self._log[__name__].info('session dc %d server %s', session.dc_id(), session.server_address())
 
         # Current proxy implementation requires `sock_connect`, and some
         # event loops lack this method. If the current loop is missing it,
@@ -331,6 +334,7 @@ class TelegramBaseClient(abc.ABC):
         else:
             default_device_model = system.machine
         default_system_version = re.sub(r'-.+','',system.release)
+        self._log[__name__].info('def_dev=%s def_sys_v=%s', default_device_model, default_system_version)
         self._init_with = lambda x: functions.InvokeWithLayerRequest(
             LAYER, functions.InitConnectionRequest(
                 api_id=self.api_id,
