@@ -233,6 +233,7 @@ class TelegramBaseClient(abc.ABC):
 
         self._use_ipv6 = use_ipv6
         self._loop = asyncio.get_event_loop()
+        logging.info(__base_name__)
 
         if isinstance(base_logger, str):
             base_logger = logging.getLogger(base_logger)
@@ -247,6 +248,7 @@ class TelegramBaseClient(abc.ABC):
                 return base_logger.getChild(key)
 
         self._log = _Loggers()
+        logging.info(self._log)
 
         # Determine what session object we have
         if isinstance(session, str) or session is None:
@@ -291,7 +293,7 @@ class TelegramBaseClient(abc.ABC):
         self.api_id = int(api_id)
         self.api_hash = api_hash
 
-        self._log[__name__].info('session dc %d server %s', session.dc_id(), session.server_address())
+        self._log[__name__].info('session dc %d server %s', session.dc_id, session.server_address)
 
         # Current proxy implementation requires `sock_connect`, and some
         # event loops lack this method. If the current loop is missing it,
