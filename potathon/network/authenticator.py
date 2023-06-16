@@ -4,6 +4,7 @@ with Telegram's servers, effectively creating an authorization key.
 """
 import os
 import time
+import logging
 from hashlib import sha1
 
 from ..tl.types import (
@@ -15,7 +16,7 @@ from ..crypto import AES, AuthKey, Factorization, rsa
 from ..errors import SecurityError
 from ..extensions import BinaryReader
 from ..tl.functions import (
-    ReqPqMultiRequest, ReqDHParamsRequest, SetClientDHParamsRequest
+    ReqPqMultiRequest, ReqDHParamsRequest, ReqPqRequest, SetClientDHParamsRequest
 )
 
 
@@ -26,20 +27,26 @@ async def do_authentication(sender):
     :param sender: a connected `MTProtoPlainSender`.
     :return: returns a (authorization key, time offset) tuple.
     """
+    
     # Step 1 sending: PQ Request, endianness doesn't matter since it's random
+    logging.info('Step 1 sending: PQ Request')
     nonce = int.from_bytes(os.urandom(16), 'big', signed=True)
-    res_pq = await sender.send(ReqPqMultiRequest(nonce))
+    #res_pq = await sender.send(ReqPqMultiRequest(nonce))
+    res_pq = await sender.send(ReqPqRequest(nonce))
     assert isinstance(res_pq, ResPQ), 'Step 1 answer was %s' % res_pq
 
     if res_pq.nonce != nonce:
         raise SecurityError('Step 1 invalid nonce from server')
 
     pq = get_int(res_pq.pq)
+    logging.info("pq = %d", pq)
 
     # Step 2 sending: DH Exchange
+    logging.info('Step 2 sending: DH Exchange')
     p, q = Factorization.factorize(pq)
     p, q = rsa.get_byte_array(p), rsa.get_byte_array(q)
     new_nonce = int.from_bytes(os.urandom(32), 'little', signed=True)
+    logging.info("new_nonce = %d", new_nonce)
 
     pq_inner_data = bytes(PQInnerData(
         pq=rsa.get_byte_array(pq), p=p, q=q,
@@ -48,20 +55,24 @@ async def do_authentication(sender):
         new_nonce=new_nonce
     ))
 
+    logging.info("encrypt pq_inner_data")
     # sha_digest + data + random_bytes
     cipher_text, target_fingerprint = None, None
     for fingerprint in res_pq.server_public_key_fingerprints:
         cipher_text = rsa.encrypt(fingerprint, pq_inner_data)
         if cipher_text is not None:
             target_fingerprint = fingerprint
+            logging.info(target_fingerprint)
             break
-
+    
     if cipher_text is None:
         # Second attempt, but now we're allowed to use old keys
         for fingerprint in res_pq.server_public_key_fingerprints:
             cipher_text = rsa.encrypt(fingerprint, pq_inner_data, use_old=True)
             if cipher_text is not None:
                 target_fingerprint = fingerprint
+                logging.info("encrypt pq_inner_data user old")
+                logging.info(target_fingerprint)
                 break
 
     if cipher_text is None:
@@ -102,6 +113,7 @@ async def do_authentication(sender):
         'Step 2.2 answer was %s' % server_dh_params
 
     # Step 3 sending: Complete DH Exchange
+    logging.info('Step 3 sending: Complete DH Exchange')
     key, iv = helpers.generate_key_data_from_nonce(
         res_pq.server_nonce, new_nonce
     )
@@ -157,6 +169,7 @@ async def do_authentication(sender):
         raise SecurityError('g_b is not within (2^{2048-64}, dh_prime - 2^{2048-64})')
 
     # Prepare client DH Inner Data
+    logging.info('Prepare client DH Inner Data and Encryption')
     client_dh_inner = bytes(ClientDHInnerData(
         nonce=res_pq.nonce,
         server_nonce=res_pq.server_nonce,
@@ -170,6 +183,7 @@ async def do_authentication(sender):
     client_dh_encrypted = AES.encrypt_ige(client_dh_inner_hashed, key, iv)
 
     # Prepare Set client DH params
+    logging.info('Prepare Set client DH params')
     dh_gen = await sender.send(SetClientDHParamsRequest(
         nonce=res_pq.nonce,
         server_nonce=res_pq.server_nonce,

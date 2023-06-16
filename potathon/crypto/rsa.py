@@ -12,6 +12,7 @@ except ImportError:
     raise ImportError('Missing module "rsa", please install via pip.')
 
 from ..tl import TLObject
+import logging
 
 
 # {fingerprint: (Crypto.PublicKey.RSA._RSAobj, old)} dictionary
@@ -51,7 +52,9 @@ def add_key(pub, *, old):
     """Adds a new public key to be used when encrypting new data is needed"""
     global _server_keys
     key = rsa.PublicKey.load_pkcs1(pub)
-    _server_keys[_compute_fingerprint(key)] = (key, old)
+    finger = _compute_fingerprint(key)
+    _server_keys[finger] = (key, old)
+    print(finger)
 
 
 def encrypt(fingerprint, data, *, use_old=False):
@@ -85,6 +88,24 @@ def encrypt(fingerprint, data, *, use_old=False):
 # Add default keys
 # https://github.com/DrKLO/Telegram/blob/a724d96e9c008b609fe188d122aa2922e40de5fc/TMessagesProj/jni/tgnet/Handshake.cpp#L356-L436
 for pub in (
+        '''-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAzZjOc1Q9PLHgHDhFkMWiHNJMurJAiSaWj5sjuVWa1/9OdqtA/poX
+yU9raqs7jKNnptbF+fibrVfMJ7arpwcTUP1auUPHgwFVnBhd5wv8eTvVRLV2w0KD
+0YNisGwriORzK5dk82wRSEc0ETlejyG39vz96k7OercC56IWwj707GV1SxMcjynj
+GUzWLn5dH9iWC4HVryvpgBQAqLGnVIaqKBeKKRUs2EmTNUxy/8V+Jx+BWNsQTUJG
+M7APRggQuwodgKmizgvuCnXwbAG8R+2FUsU+lw29VJ74Sdu4Zq6e6p2gJiqrU1u4
+hSXCNzYadtj7EgifYbKQj1uAV1XMzuDYtwIDAQAB
+-----END RSA PUBLIC KEY-----''',
+
+        '''-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEA6LszBcC1LGzyr992NzE0ieY+BSaOW622Aa9Bd4ZHLl+TuFQ4lo4g
+5nKaMBwK/BIb9xUfg0Q29/2mgIR6Zr9krM7HjuIcCzFvDtr+L0GQjae9H0pRB2OO
+62cECs5HKhT5DZ98K33vmWiLowc621dQuwKWSQKjWf50XYFw42h21P2KXUGyp2y/
++aEyZ+uVgLLQbRA1dEjSDZ2iGRy12Mk5gpYc397aYp438fsJoHIgJ2lgMv5h7WY9
+t6N/byY9Nw9p21Og3AoXSL2q/2IJ1WRUhebgAdGVMlV1fkuOQoEzR7EdpqtQD9Cs
+5+bfo3Nhmcyvk5ftB0WkJ9z6bNZ7yxrP8wIDAQAB
+-----END RSA PUBLIC KEY-----''',
+
         '''-----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAruw2yP/BCcsJliRoW5eBVBVle9dtjJw+OYED160Wybum9SXtBBLX
 riwt4rROd9csv0t0OHCaTmRqBcQ0J8fxhN6/cpR1GWgOZRUAiQxoMnlt0R93LCX/
@@ -126,14 +147,7 @@ PGHKSMeRFvp3IWcmdJqXahxLCUS1Eh6MAQIDAQAB
 
 
 for pub in (
-        '''-----BEGIN RSA PUBLIC KEY-----
-MIIBCgKCAQEAzZjOc1Q9PLHgHDhFkMWiHNJMurJAiSaWj5sjuVWa1/9OdqtA/poX
-yU9raqs7jKNnptbF+fibrVfMJ7arpwcTUP1auUPHgwFVnBhd5wv8eTvVRLV2w0KD
-0YNisGwriORzK5dk82wRSEc0ETlejyG39vz96k7OercC56IWwj707GV1SxMcjynj
-GUzWLn5dH9iWC4HVryvpgBQAqLGnVIaqKBeKKRUs2EmTNUxy/8V+Jx+BWNsQTUJG
-M7APRggQuwodgKmizgvuCnXwbAG8R+2FUsU+lw29VJ74Sdu4Zq6e6p2gJiqrU1u4
-hSXCNzYadtj7EgifYbKQj1uAV1XMzuDYtwIDAQAB
------END RSA PUBLIC KEY-----'''
+
         '''-----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAwVACPi9w23mF3tBkdZz+zwrzKOaaQdr01vAbU4E1pvkfj4sqDsm6
 lyDONS789sVoD/xCS9Y0hkkC3gtL1tSfTlgCMOOul9lcixlEKzwKENj1Yz/s7daS

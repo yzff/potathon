@@ -291,6 +291,7 @@ class MTProtoSender:
             # notify whenever we change it. This is crucial when we
             # switch to different data centers.
             if self._auth_key_callback:
+                self._log.debug('call _auth_key_callback')
                 self._auth_key_callback(self.auth_key)
 
             self._log.debug('auth_key generation success!')
@@ -510,6 +511,7 @@ class MTProtoSender:
         method based on its type.
         """
         self._pending_ack.add(message.msg_id)
+        self._log.debug('msg constructor id %x', message.obj.CONSTRUCTOR_ID)
         handler = self._handlers.get(message.obj.CONSTRUCTOR_ID,
                                      self._handle_update)
         await handler(message)

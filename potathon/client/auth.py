@@ -334,17 +334,15 @@ class AuthMethods:
                 code = input('enter code: ')
                 await client.sign_in(phone, code)
         """
-        '''
         me = await self.get_me()
         if me:
             return me
-        '''
 
         if phone and not code and not password:
             return await self.send_code_request(phone)
         elif code:
-            # phone, phone_code_hash = \
-            #     self._parse_phone_and_hash(phone, phone_code_hash)
+            phone, phone_code_hash = \
+                self._parse_phone_and_hash(phone, phone_code_hash)
 
             # May raise PhoneCodeEmptyError, PhoneCodeExpiredError,
             # PhoneCodeHashEmptyError or PhoneCodeInvalidError.

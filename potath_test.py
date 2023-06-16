@@ -7,10 +7,10 @@ api_id = 30915
 api_hash = 'fb9f0bb7fdd0760c354cc3d80cecb1d9'
 logging.basicConfig(level=logging.DEBUG)
 logging.info('new TelegramClient')
-#client = TelegramClient('potato', api_id, api_hash, ipv4='149.154.167.51')
 # tg 149.154.167.51  potato 13.229.216.78  13.229.58.26  54.255.202.19
 #client = TelegramClient('potato', api_id, api_hash, ipv4='13.229.58.26')
-client = TelegramClient('potato', api_id, api_hash, ipv4='13.229.216.78', proxy=(socks.SOCKS5, '127.0.0.1', 4781))
+#client = TelegramClient('tg1206', api_id, api_hash, ipv4='149.154.167.51', proxy=(socks.SOCKS5, '127.0.0.1', 4781))
+client = TelegramClient('potato1', api_id, api_hash, ipv4='13.212.83.247')
 
 async def main():
     logging.info('client.get_me')
